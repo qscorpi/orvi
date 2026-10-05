@@ -1,4 +1,4 @@
-import { negBinomPMF, gammaQuantile } from "./stats.js";
+import { negBinomPMF, negBinomTail, gammaQuantile } from "./stats.js";
 
 /**
  * Гистограмма распределения числа эпизодов ОРВИ за год.
@@ -109,6 +109,75 @@ export function renderDailyChart(elementId, days, haz, hLo, hHi) {
       },
       xaxis: { title: "Дата", type: "date" },
       yaxis: { title: "Вероятность в день", tickformat: ".2%" },
+      margin: { l: 70, r: 20, t: 50, b: 50 },
+      legend: { orientation: "h", y: -0.2 },
+      plot_bgcolor: "#fafbfc",
+      paper_bgcolor: "#fff",
+    },
+    { responsive: true },
+  );
+}
+
+/**
+ * График «хотя бы k раз»: P(N ≥ k).
+ * Интуитивно: «как вероятность, что я заболею хотя бы столько раз».
+ */
+export function renderCDFChart(elementId, alpha, p_nb) {
+  const ks = [],
+    tail = [],
+    lo = [],
+    hi = [];
+  const aLo = gammaQuantile(alpha, 0.025);
+  const aHi = gammaQuantile(alpha, 0.975);
+
+  for (let k = 0; k <= 12; k++) {
+    ks.push(k);
+    tail.push(negBinomTail(k, alpha, p_nb));
+    lo.push(negBinomTail(k, aLo, p_nb));
+    hi.push(negBinomTail(k, aHi, p_nb));
+  }
+
+  Plotly.react(
+    elementId,
+    [
+      {
+        x: ks,
+        y: tail,
+        type: "bar",
+        name: "P(N ≥ k)",
+        marker: { color: "#1f6feb", line: { color: "#1558c0", width: 1 } },
+        hovertemplate: "Хотя бы %{x} раз<br>P=%{y:.1%}<extra></extra>",
+      },
+      {
+        x: ks,
+        y: lo,
+        type: "scatter",
+        mode: "lines",
+        name: "2.5%",
+        line: { color: "#f0a020", dash: "dash", width: 1 },
+        hoverinfo: "skip",
+      },
+      {
+        x: ks,
+        y: hi,
+        type: "scatter",
+        mode: "lines",
+        name: "97.5%",
+        line: { color: "#f0a020", dash: "dash", width: 1 },
+        hoverinfo: "skip",
+      },
+    ],
+    {
+      title: {
+        text: "Вероятность заболеть хотя бы k раз за 2027 год",
+        font: { size: 15 },
+      },
+      xaxis: { title: "Число эпизодов (не менее)", dtick: 1 },
+      yaxis: {
+        title: "Вероятность «хотя бы k»",
+        tickformat: ".0%",
+        range: [0, 1],
+      },
       margin: { l: 70, r: 20, t: 50, b: 50 },
       legend: { orientation: "h", y: -0.2 },
       plot_bgcolor: "#fafbfc",

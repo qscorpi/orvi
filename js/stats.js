@@ -68,3 +68,22 @@ export function normQ(p) {
     (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1)
   );
 }
+
+/**
+ * CDF отрицательного биномиального распределения.
+ * P(X ≤ k) = сумма PMF от 0 до k.
+ */
+export function negBinomCDF(k, r, p) {
+  let sum = 0;
+  for (let i = 0; i <= k; i++) sum += negBinomPMF(i, r, p);
+  return sum;
+}
+
+/**
+ * Хвостовая вероятность: P(X ≥ k) = 1 − P(X ≤ k−1).
+ * Это интуитивное «вероятность заболеть хотя бы k раз».
+ */
+export function negBinomTail(k, r, p) {
+  if (k <= 0) return 1;
+  return 1 - negBinomCDF(k - 1, r, p);
+}
