@@ -186,3 +186,49 @@ export function renderCDFChart(elementId, alpha, p_nb) {
     { responsive: true },
   );
 }
+
+/**
+ * Stacked area chart: сезонность по вирусам + суммарная кривая сверху.
+ */
+export function renderViralChart(elementId, days, breakdown, total) {
+  const traces = breakdown.map((v) => ({
+    x: days,
+    y: v.daily,
+    type: "scatter",
+    mode: "lines",
+    name: v.name,
+    stackgroup: "viruses",
+    line: { width: 0 },
+    fillcolor: v.color + "99", // полупрозрачность
+    hovertemplate: `${v.name}<br>%{x}<br>%{y:.4%}<extra></extra>`,
+  }));
+
+  traces.push({
+    x: days,
+    y: total,
+    type: "scatter",
+    mode: "lines",
+    name: "Сумма",
+    line: { color: "#222", width: 2.5 },
+    hovertemplate: "Сумма<br>%{x}<br>%{y:.4%}<extra></extra>",
+  });
+
+  Plotly.react(
+    elementId,
+    traces,
+    {
+      title: {
+        text: "Дневная вероятность по вирусам + сумма",
+        font: { size: 15 },
+      },
+      xaxis: { title: "Дата", type: "date" },
+      yaxis: { title: "Вероятность в день", tickformat: ".2%" },
+      margin: { l: 70, r: 20, t: 50, b: 50 },
+      legend: { orientation: "h", y: -0.25 },
+      plot_bgcolor: "#fafbfc",
+      paper_bgcolor: "#fff",
+      hovermode: "x unified",
+    },
+    { responsive: true },
+  );
+}
