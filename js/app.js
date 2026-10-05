@@ -4,7 +4,11 @@ import {
   gammaParams,
   dailyProbabilities,
 } from "./model.js";
-import { renderCountChart, renderDailyChart } from "./charts.js";
+import {
+  renderCountChart,
+  renderCDFChart,
+  renderDailyChart,
+} from "./charts.js";
 
 /**
  * Главная функция: читает форму, считает модель, рисует графики.
@@ -20,8 +24,14 @@ function update() {
   // Параметры Gamma-prior → NegBinom
   const { alpha, beta, p_nb } = gammaParams(lam);
 
-  // График 1: распределение числа эпизодов
-  renderCountChart("chart_count", alpha, p_nb);
+  // График 1: распределение числа эпизодов.
+  // Режим выбирается переключателем; по умолчанию — CDF («хотя бы k раз»).
+  const mode = document.querySelector('input[name="chartMode"]:checked').value;
+  if (mode === "cdf") {
+    renderCDFChart("chart_count", alpha, p_nb);
+  } else {
+    renderCountChart("chart_count", alpha, p_nb);
+  }
 
   // График 2: дневные вероятности + 95% интервал
   const { days, haz, hLo, hHi } = dailyProbabilities(lam, alpha, beta);
@@ -41,7 +51,7 @@ function update() {
 });
 
 /**
- * Любое изменение в форме или ползунке → пересчёт.
+ * Любое изменение в форме, ползунке или переключателе → пересчёт.
  */
 document
   .querySelectorAll("input, select")

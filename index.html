@@ -98,6 +98,19 @@
       </div>
 
       <div class="panel">
+        <div style="margin-bottom: 12px; font-size: 14px">
+          <label
+            style="display: inline-block; margin-right: 20px; cursor: pointer"
+          >
+            <input type="radio" name="chartMode" value="pmf" checked />
+            Ровно k раз
+          </label>
+          <label style="display: inline-block; cursor: pointer">
+            <input type="radio" name="chartMode" value="cdf" />
+            Хотя бы k раз
+          </label>
+        </div>
+
         <div id="chart_count" style="width: 100%; height: 340px"></div>
         <div
           id="chart_daily"
