@@ -78,3 +78,43 @@ input[type="range"] {
     grid-template-columns: 1fr;
   }
 }
+
+.history-input {
+  width: 80px;
+  padding: 6px;
+  border: 1px solid #d0d5dc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.history-remove {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #f0f2f5;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #666;
+}
+.history-remove:hover {
+  background: #ffdddd;
+  color: #c00;
+}
+#addYear {
+  background: #eef4ff;
+  border: 1px solid #c8d8f0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: #1f6feb;
+  font-size: 13px;
+}
+#addYear:hover {
+  background: #dce7fa;
+}
+
+#history_inputs .row {
+  display: grid;
+  grid-template-columns: 50px 1fr 28px;
+  gap: 6px;
+  align-items: center;
+}
