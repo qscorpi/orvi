@@ -17,6 +17,11 @@
       <div class="panel">
         <h3 style="margin-top: 0">Ваши данные</h3>
 
+        <div class="lambda-box">
+          Популяционное среднее: <b id="prior_out">2.00</b><br />
+          С учётом вашей истории: <b id="lambda_out">2.00</b> за год
+        </div>
+
         <label>Возраст</label>
         <input type="number" id="age" value="41" min="1" max="100" />
 
@@ -97,11 +102,6 @@
         <button type="button" id="addYear" style="margin-top: 6px">
           + Добавить год
         </button>
-
-        <div class="lambda-box">
-          Популяционное среднее: <b id="prior_out">2.00</b><br />
-          С учётом вашей истории: <b id="lambda_out">2.00</b> за год
-        </div>
       </div>
 
       <div class="panel">
