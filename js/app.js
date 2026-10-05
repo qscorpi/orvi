@@ -1,6 +1,7 @@
 import {
   readForm,
   computeLambda,
+  personalLambda,
   gammaParams,
   dailyProbabilities,
 } from "./model.js";
@@ -9,23 +10,67 @@ import {
   renderCDFChart,
   renderDailyChart,
 } from "./charts.js";
+import { CONFIG } from "./config.js";
 
-/**
- * Главная функция: читает форму, считает модель, рисует графики.
- * Вызывается при загрузке и при любом изменении в форме.
- */
+// История: массив объектов { year, count }
+let history = [
+  { year: 2024, count: 2 },
+  { year: 2025, count: 3 },
+  { year: 2026, count: 2 },
+];
+
+function renderHistoryInputs() {
+  const container = document.getElementById("history_inputs");
+  container.innerHTML = history
+    .map(
+      (h, i) => `
+    <div class="row" style="margin-bottom:4px;">
+      <span style="min-width:50px; font-size:13px; color:#666;">${h.year}</span>
+      <input type="number" min="0" max="12" value="${h.count}" data-idx="${i}" class="history-input">
+      <button type="button" data-idx="${i}" class="history-remove">×</button>
+    </div>
+  `,
+    )
+    .join("");
+
+  container.querySelectorAll(".history-input").forEach((el) => {
+    el.addEventListener("input", () => {
+      history[+el.dataset.idx].count = +el.value;
+      update();
+    });
+  });
+
+  container.querySelectorAll(".history-remove").forEach((el) => {
+    el.addEventListener("click", () => {
+      history.splice(+el.dataset.idx, 1);
+      renderHistoryInputs();
+      update();
+    });
+  });
+}
+
+// Кнопка "+ Добавить год": добавляет более ранний год сверху
+document.getElementById("addYear").addEventListener("click", () => {
+  const firstYear = history.length ? history[0].year : 2026;
+  history.unshift({ year: firstYear - 1, count: 0 });
+  renderHistoryInputs();
+  update();
+});
+
 function update() {
   const input = readForm();
+  const priorLam = CONFIG.baseLambda;
+
+  // Байесовская оценка с учётом истории
+  input.personalBase = personalLambda(priorLam, CONFIG.priorWeight, history);
+
   const lam = computeLambda(input);
 
-  // Обновляем цифру λ рядом с формой
+  document.getElementById("prior_out").textContent = priorLam.toFixed(2);
   document.getElementById("lambda_out").textContent = lam.toFixed(2);
 
-  // Параметры Gamma-prior → NegBinom
   const { alpha, beta, p_nb } = gammaParams(lam);
 
-  // График 1: распределение числа эпизодов.
-  // Режим выбирается переключателем; по умолчанию — CDF («хотя бы k раз»).
   const mode = document.querySelector('input[name="chartMode"]:checked').value;
   if (mode === "cdf") {
     renderCDFChart("chart_count", alpha, p_nb);
@@ -33,14 +78,11 @@ function update() {
     renderCountChart("chart_count", alpha, p_nb);
   }
 
-  // График 2: дневные вероятности + 95% интервал
   const { days, haz, hLo, hHi } = dailyProbabilities(lam, alpha, beta);
   renderDailyChart("chart_daily", days, haz, hLo, hHi);
 }
 
-/**
- * Ползунки: показываем текущее значение рядом с ними.
- */
+// Ползунки: показываем текущее значение рядом
 ["transport", "sleep"].forEach((id) => {
   const el = document.getElementById(id);
   const out = document.getElementById(id + "_v");
@@ -50,9 +92,7 @@ function update() {
   });
 });
 
-/**
- * Любое изменение в форме, ползунке или переключателе → пересчёт.
- */
+// Все инпуты и селекты вызывают update
 document
   .querySelectorAll("input, select")
   .forEach((el) => el.addEventListener("change", update));
@@ -60,5 +100,6 @@ document
   .querySelectorAll("input[type=range]")
   .forEach((el) => el.addEventListener("input", update));
 
-// Первый рендер при загрузке страницы
+// Стартовая инициализация
+renderHistoryInputs();
 update();

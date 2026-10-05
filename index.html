@@ -92,8 +92,15 @@
           <option value="high">Высокий</option>
         </select>
 
+        <label>Сколько раз вы болели ОРВИ за последние годы</label>
+        <div id="history_inputs"></div>
+        <button type="button" id="addYear" style="margin-top: 6px">
+          + Добавить год
+        </button>
+
         <div class="lambda-box">
-          Ожидаемое число эпизодов: <b id="lambda_out">2.00</b> за год
+          Популяционное среднее: <b id="prior_out">2.00</b><br />
+          С учётом вашей истории: <b id="lambda_out">2.00</b> за год
         </div>
       </div>
 

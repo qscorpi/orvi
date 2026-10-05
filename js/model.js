@@ -27,7 +27,7 @@ export function readForm() {
  * Использует коэффициенты из CONFIG.
  */
 export function computeLambda(input) {
-  let lam = CONFIG.baseLambda;
+  let lam = input.personalBase ?? CONFIG.baseLambda;
 
   // Возраст: первый подходящий диапазон применяется
   for (const { min, max, factor } of CONFIG.ageFactors) {
@@ -110,4 +110,18 @@ export function dailyProbabilities(lam, alpha, beta) {
     hHi.push(lamHi * daily[i]);
   }
   return { days, haz, hLo, hHi };
+}
+
+/**
+ * Байесовская оценка личной λ.
+ * priorLambda — популяционное среднее.
+ * priorWeight — вес приора в "годах наблюдений".
+ * history — массив объектов { year, count }.
+ */
+export function personalLambda(priorLambda, priorWeight, history) {
+  const n = history.length;
+  if (n === 0) return priorLambda;
+
+  const sum = history.reduce((a, h) => a + h.count, 0);
+  return (priorWeight * priorLambda + sum) / (priorWeight + n);
 }
