@@ -1,4 +1,4 @@
-import { CONFIG, MONTH_WEIGHTS, DAYS_IN_MONTH } from "./config.js";
+import { CONFIG, DAYS_IN_MONTH, VIRUSES } from "./config.js";
 import { gammaQuantile } from "./stats.js";
 
 /**
@@ -59,10 +59,29 @@ export function computeLambda(input) {
 }
 
 /**
+ * Вычисляет месячные веса из весов вирусов.
+ * Это единственный источник истины для сезонности:
+ *   MONTH_WEIGHTS[m] = Σ_v (virus.weight × virus.season[m])
+ * Возвращает массив из 12 чисел, сумма = 1.0.
+ */
+export function monthWeightsFromViruses(viruses = VIRUSES) {
+  const out = new Array(12).fill(0);
+  for (const v of viruses) {
+    for (let m = 0; m < 12; m++) {
+      out[m] += v.weight * v.season[m];
+    }
+  }
+  return out;
+}
+
+/**
  * Сезонные дневные веса: доля годового риска, приходящаяся на каждый день.
  * Сумма всех 365 значений = 1.0.
  */
-export function seasonalDaily(weights = MONTH_WEIGHTS, dim = DAYS_IN_MONTH) {
+export function seasonalDaily(
+  weights = monthWeightsFromViruses(),
+  dim = DAYS_IN_MONTH,
+) {
   const total = weights.reduce((a, b) => a + b, 0);
   const out = [];
   for (let m = 0; m < 12; m++) {
@@ -124,4 +143,34 @@ export function personalLambda(priorLambda, priorWeight, history) {
 
   const sum = history.reduce((a, h) => a + h.count, 0);
   return (priorWeight * priorLambda + sum) / (priorWeight + n);
+}
+
+/**
+ * Разбивает общую λ по вирусам с учётом их сезонных профилей.
+ * Возвращает массив:
+ *   [{ id, name, color, daily: [365 чисел] }, ...]
+ * где daily[i] — ожидаемое число эпизодов данного вируса в день i
+ * (сумма по всем вирусам и дням = λ).
+ */
+export function viralBreakdown(lam, viruses = VIRUSES, dim = DAYS_IN_MONTH) {
+  return viruses.map((v) => {
+    const daily = [];
+    for (let m = 0; m < 12; m++) {
+      const perDay = (v.season[m] * v.weight * lam) / dim[m];
+      for (let d = 0; d < dim[m]; d++) daily.push(perDay);
+    }
+    return { id: v.id, name: v.name, color: v.color, daily };
+  });
+}
+
+/**
+ * Сумма всех вирусов по дням — совпадает с общей λ × seasonalDaily().
+ */
+export function viralTotal(breakdown) {
+  const n = breakdown[0]?.daily.length ?? 0;
+  const total = new Array(n).fill(0);
+  for (const v of breakdown) {
+    for (let i = 0; i < n; i++) total[i] += v.daily[i];
+  }
+  return total;
 }

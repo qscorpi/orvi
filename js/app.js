@@ -4,11 +4,14 @@ import {
   personalLambda,
   gammaParams,
   dailyProbabilities,
+  viralBreakdown,
+  viralTotal,
 } from "./model.js";
 import {
   renderCountChart,
   renderCDFChart,
   renderDailyChart,
+  renderViralChart,
 } from "./charts.js";
 import { CONFIG } from "./config.js";
 
@@ -79,7 +82,26 @@ function update() {
   }
 
   const { days, haz, hLo, hHi } = dailyProbabilities(lam, alpha, beta);
-  renderDailyChart("chart_daily", days, haz, hLo, hHi);
+
+  // График по вирусам
+  const breakdown = viralBreakdown(lam);
+  const total = viralTotal(breakdown);
+
+  const seasonMode = document.querySelector(
+    'input[name="seasonMode"]:checked',
+  ).value;
+  const dailyEl = document.getElementById("chart_daily");
+  const viralEl = document.getElementById("chart_viral");
+
+  if (seasonMode === "viruses") {
+    dailyEl.style.display = "none";
+    viralEl.style.display = "block";
+    renderViralChart("chart_viral", days, breakdown, total);
+  } else {
+    viralEl.style.display = "none";
+    dailyEl.style.display = "block";
+    renderDailyChart("chart_daily", days, haz, hLo, hHi);
+  }
 }
 
 // Ползунки: показываем текущее значение рядом
