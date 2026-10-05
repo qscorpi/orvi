@@ -107,7 +107,7 @@ export function gammaParams(lam, cv = CONFIG.priorCV) {
  * Дневные вероятности по всем 365 дням 2027 года + 95% интервал.
  * Возвращает объекты для Plotly: days, haz, hLo, hHi.
  */
-export function dailyProbabilities(lam, alpha, beta) {
+export function dailyProbabilities(lam, alpha, beta, immune = null) {
   const daily = seasonalDaily();
   const start = new Date(2027, 0, 1);
   const days = [],
@@ -121,12 +121,13 @@ export function dailyProbabilities(lam, alpha, beta) {
   const lamHi = aHi / beta;
 
   for (let i = 0; i < 365; i++) {
+    const f = immune ? immune[i] : 1;
     days.push(
       new Date(start.getTime() + i * 86400000).toISOString().slice(0, 10),
     );
-    haz.push(lam * daily[i]);
-    hLo.push(lamLo * daily[i]);
-    hHi.push(lamHi * daily[i]);
+    haz.push(lam * daily[i] * f);
+    hLo.push(lamLo * daily[i] * f);
+    hHi.push(lamHi * daily[i] * f);
   }
   return { days, haz, hLo, hHi };
 }
@@ -146,14 +147,42 @@ export function personalLambda(priorLambda, priorWeight, history) {
 }
 
 /**
+ * Иммунный долг: после эпизода в день t₀ риск на N дней падает.
+ * Возвращает массив длиной 365, где каждое значение ∈ [1-reduction, 1].
+ *
+ * events — массив дней (индексов 0..364), когда случались эпизоды.
+ * Если events пустой — массив из единиц (нет иммунного долга).
+ *
+ * ПРИМЕЧАНИЕ: в текущей модели events пустой (эпизоды в 2027 ещё не произошли).
+ * Функция готова к использованию, когда мы добавим пользовательский ввод:
+ * "когда вы болели в последний раз".
+ */
+export function immuneFactor(events = [], days = 365, cfg = CONFIG.immuneDebt) {
+  const factor = new Array(days).fill(1);
+  for (const t0 of events) {
+    for (let d = 0; d < cfg.days; d++) {
+      const idx = t0 + d;
+      if (idx >= days) break;
+      factor[idx] *= 1 - cfg.reduction;
+    }
+  }
+  return factor;
+}
+
+/**
  * Разбивает общую λ по вирусам с учётом их сезонных профилей.
  * Возвращает массив:
  *   [{ id, name, color, daily: [365 чисел] }, ...]
  * где daily[i] — ожидаемое число эпизодов данного вируса в день i
  * (сумма по всем вирусам и дням = λ).
  */
-export function viralBreakdown(lam, viruses = VIRUSES, dim = DAYS_IN_MONTH) {
-  return viruses.map((v) => {
+export function viralBreakdown(
+  lam,
+  viruses = VIRUSES,
+  dim = DAYS_IN_MONTH,
+  immune = null,
+) {
+  const breakdown = viruses.map((v) => {
     const daily = [];
     for (let m = 0; m < 12; m++) {
       const perDay = (v.season[m] * v.weight * lam) / dim[m];
@@ -161,6 +190,17 @@ export function viralBreakdown(lam, viruses = VIRUSES, dim = DAYS_IN_MONTH) {
     }
     return { id: v.id, name: v.name, color: v.color, daily };
   });
+
+  // Применяем иммунный долг, если передан
+  if (immune) {
+    for (const v of breakdown) {
+      for (let i = 0; i < v.daily.length; i++) {
+        v.daily[i] *= immune[i];
+      }
+    }
+  }
+
+  return breakdown;
 }
 
 /**
